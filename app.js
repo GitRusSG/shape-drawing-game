@@ -122,13 +122,39 @@ window.onerror = function (msg, url, line, col, error) {
     originalHandleCanvasClick(x, y);
   };
 
-  // 14. Export button — download canvas as PNG
+  // 14. Export button — download canvas as PNG (composites all layers)
   var btnExport = document.getElementById('btn-export');
   if (btnExport) {
     btnExport.addEventListener('click', function () {
+      // Create a temp canvas that composites all layers
+      var tempCanvas = document.createElement('canvas');
+      var rect = canvas.getBoundingClientRect();
+      tempCanvas.width = rect.width;
+      tempCanvas.height = rect.height;
+      var tempCtx = tempCanvas.getContext('2d');
+
+      // Background
+      tempCtx.fillStyle = '#0f0f23';
+      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+      // Layer 1: Asimov canvas (if has content)
+      var asimovEl = document.getElementById('asimov-canvas');
+      if (asimovEl && asimovEl.width > 0) {
+        tempCtx.drawImage(asimovEl, 0, 0, tempCanvas.width, tempCanvas.height);
+      }
+
+      // Layer 2: Drawing canvas
+      tempCtx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+
+      // Layer 3: Stamp canvas
+      var stampEl = document.getElementById('stamp-canvas');
+      if (stampEl && stampEl.width > 0) {
+        tempCtx.drawImage(stampEl, 0, 0, tempCanvas.width, tempCanvas.height);
+      }
+
       var link = document.createElement('a');
       link.download = 'shape-drawing.png';
-      link.href = canvas.toDataURL('image/png');
+      link.href = tempCanvas.toDataURL('image/png');
       link.click();
     });
   }

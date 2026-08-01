@@ -25,6 +25,9 @@ class AsimovMode {
     this._curves = [];
     this._hueBase = 0;
     this._isDrawing = false;
+    this._dwellTime = 0;     // how long mouse has been still while pressed
+    this._lastMoveTime = 0;  // timestamp of last mouse movement
+    this._permanentMarks = []; // spots that have been held long enough to be permanent
 
     // Bind
     this._onMove = this._handleMove.bind(this);
@@ -74,6 +77,7 @@ class AsimovMode {
   clear() {
     this._particles = [];
     this._curves = [];
+    this._permanentMarks = [];
     this._ctx.fillStyle = '#0a0a1a';
     this._ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
   }
@@ -91,6 +95,8 @@ class AsimovMode {
     this._prevY = this._mouseY;
     this._mouseX = e.clientX - rect.left;
     this._mouseY = e.clientY - rect.top;
+    this._lastMoveTime = Date.now();
+    this._dwellTime = 0;
 
     if (this._isDrawing) {
       this._emitParticles();
@@ -187,9 +193,36 @@ class AsimovMode {
     this._time += 0.016;
     var ctx = this._ctx;
 
-    // Fade the canvas slightly for trail effect
+    // Track dwell time — if mouse is held still while drawing
+    if (this._isDrawing) {
+      var timeSinceMove = Date.now() - this._lastMoveTime;
+      if (timeSinceMove > 300) {
+        this._dwellTime += 0.016;
+        // After holding ~0.5s, start creating a permanent mark
+        if (this._dwellTime > 0.5) {
+          var hue = (this._hueBase + this._time * 40) % 360;
+          // Add to permanent marks (these won't fade)
+          this._permanentMarks.push({
+            x: this._mouseX,
+            y: this._mouseY,
+            hue: hue,
+            alpha: Math.min(this._dwellTime * 0.3, 0.9),
+            radius: 15 + this._dwellTime * 5
+          });
+          // Cap marks
+          if (this._permanentMarks.length > 2000) {
+            this._permanentMarks.splice(0, 100);
+          }
+        }
+      }
+    }
+
+    // Fade the canvas slightly for trail effect — but draw permanent marks on top
     ctx.fillStyle = 'rgba(10, 10, 26, 0.03)';
     ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
+
+    // Redraw permanent marks (these resist the fade)
+    this._drawPermanentMarks();
 
     // Draw flowing curves
     this._drawCurves();
@@ -200,7 +233,7 @@ class AsimovMode {
     // Draw ambient interference patterns (subtle background animation)
     this._drawAmbient();
 
-    // Draw cursor indicator — small glowing ring at mouse position
+    // Draw cursor indicator
     this._drawCursor();
 
     this._animFrame = requestAnimationFrame(this._loop);
@@ -241,6 +274,20 @@ class AsimovMode {
         ctx.stroke();
         ctx.shadowBlur = 0;
       }
+    }
+  }
+
+  _drawPermanentMarks() {
+    var ctx = this._ctx;
+    for (var i = 0; i < this._permanentMarks.length; i++) {
+      var m = this._permanentMarks[i];
+      var grad = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.radius);
+      grad.addColorStop(0, 'hsla(' + m.hue + ', 90%, 60%, ' + m.alpha + ')');
+      grad.addColorStop(1, 'hsla(' + m.hue + ', 80%, 40%, 0)');
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
     }
   }
 
