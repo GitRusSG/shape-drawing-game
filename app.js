@@ -162,6 +162,12 @@ window.onerror = function (msg, url, line, col, error) {
   // 16. Stamp mode — press-and-hold circle with color shift
   var stampCanvas = document.getElementById('stamp-canvas');
   var stampMode = new StampMode(stampCanvas);
+  // Size the stamp canvas immediately so stamps are visible even before first activation
+  (function() {
+    var rect = stampCanvas.getBoundingClientRect();
+    stampCanvas.width = rect.width;
+    stampCanvas.height = rect.height;
+  })();
   var btnCircleMode = document.getElementById('btn-circle-mode');
 
   if (btnCircleMode) {
