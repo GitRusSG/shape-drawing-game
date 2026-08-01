@@ -119,6 +119,17 @@ class CanvasRenderer {
       this._drawClosedShape(closedShapes[i], refLen);
     }
 
+    // Draw vertex markers on closed shapes (small dots showing connection points)
+    for (var ci = 0; ci < closedShapes.length; ci++) {
+      var cverts = closedShapes[ci].vertices;
+      for (var cv = 0; cv < cverts.length; cv++) {
+        ctx.beginPath();
+        ctx.arc(cverts[cv].x, cverts[cv].y, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fill();
+      }
+    }
+
     // Draw open shape
     var openShape = this._store.getOpenShape();
     if (openShape !== null) {
@@ -128,7 +139,7 @@ class CanvasRenderer {
 
   /**
    * Draws a closed shape: segments with color-scale colors,
-   * then fills interior at 25% opacity using mean segment color.
+   * then fills interior with a gradient that blends between each segment's color.
    * @param {Shape} shape - A closed shape
    * @param {number} refLen - The current reference length
    */
@@ -144,19 +155,74 @@ class CanvasRenderer {
       this._drawSegment(seg, color);
     }
 
-    // Fill interior with mean segment color at 25% opacity
+    // Fill interior with gradient blending between segment colors
     if (segments.length > 0 && shape.vertices.length >= 3) {
-      var meanLen = meanSegmentLength(shape);
-      var fillColor = colorScale(meanLen, refLen);
+      // Compute centroid for radial gradient center
+      var cx = 0, cy = 0;
+      for (var j = 0; j < shape.vertices.length; j++) {
+        cx += shape.vertices[j].x;
+        cy += shape.vertices[j].y;
+      }
+      cx /= shape.vertices.length;
+      cy /= shape.vertices.length;
 
+      // Find max distance from centroid to any vertex (for gradient radius)
+      var maxDist = 0;
+      for (var k = 0; k < shape.vertices.length; k++) {
+        var dx = shape.vertices[k].x - cx;
+        var dy = shape.vertices[k].y - cy;
+        var d = Math.sqrt(dx * dx + dy * dy);
+        if (d > maxDist) maxDist = d;
+      }
+
+      // Create a conic-style gradient by layering multiple linear gradients
+      // For each segment, add a gradient stop at the midpoint angle
+      // Use a simpler approach: radial gradient with color stops from each segment
+      var numSegs = segments.length;
+      
+      // Clip to shape path first
+      ctx.save();
       ctx.beginPath();
       ctx.moveTo(shape.vertices[0].x, shape.vertices[0].y);
-      for (var j = 1; j < shape.vertices.length; j++) {
-        ctx.lineTo(shape.vertices[j].x, shape.vertices[j].y);
+      for (var m = 1; m < shape.vertices.length; m++) {
+        ctx.lineTo(shape.vertices[m].x, shape.vertices[m].y);
       }
       ctx.closePath();
-      ctx.fillStyle = 'hsla(' + fillColor.h + ', ' + fillColor.s + '%, ' + fillColor.l + '%, 0.25)';
-      ctx.fill();
+      ctx.clip();
+
+      // Draw gradient triangles from centroid to each edge, colored by that edge's color
+      for (var s = 0; s < numSegs; s++) {
+        var seg = segments[s];
+        var len = segmentLength(seg.from, seg.to);
+        var color = colorScale(len, refLen);
+
+        // Get adjacent segment colors for blending
+        var prevIdx = (s - 1 + numSegs) % numSegs;
+        var nextIdx = (s + 1) % numSegs;
+        var prevLen = segmentLength(segments[prevIdx].from, segments[prevIdx].to);
+        var nextLen = segmentLength(segments[nextIdx].from, segments[nextIdx].to);
+        var prevColor = colorScale(prevLen, refLen);
+        var nextColor = colorScale(nextLen, refLen);
+
+        // Draw a triangle from centroid to this segment's two endpoints
+        // Use a linear gradient from the segment midpoint toward centroid
+        var midX = (seg.from.x + seg.to.x) / 2;
+        var midY = (seg.from.y + seg.to.y) / 2;
+
+        var grad = ctx.createLinearGradient(midX, midY, cx, cy);
+        grad.addColorStop(0, 'hsla(' + color.h + ', ' + color.s + '%, ' + color.l + '%, 0.35)');
+        grad.addColorStop(1, 'hsla(' + color.h + ', ' + color.s + '%, ' + color.l + '%, 0.08)');
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(seg.from.x, seg.from.y);
+        ctx.lineTo(seg.to.x, seg.to.y);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
+
+      ctx.restore();
     }
   }
 

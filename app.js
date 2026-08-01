@@ -122,4 +122,15 @@ window.onerror = function (msg, url, line, col, error) {
     originalHandleCanvasClick(x, y);
   };
 
+  // 14. Export button — download canvas as PNG
+  var btnExport = document.getElementById('btn-export');
+  if (btnExport) {
+    btnExport.addEventListener('click', function () {
+      var link = document.createElement('a');
+      link.download = 'shape-drawing.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  }
+
 })();

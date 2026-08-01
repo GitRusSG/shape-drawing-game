@@ -179,7 +179,8 @@ class InputRouter {
    * Logic:
    *   1. If open shape exists with >= 3 vertices and click is within ANCHOR_RADIUS
    *      of the first vertex → close shape
-   *   2. Otherwise → add vertex
+   *   2. If click is near an existing vertex (from any closed shape), snap to that vertex
+   *   3. Otherwise → add vertex at click position
    *
    * @param {number} x - Canvas X coordinate (integer)
    * @param {number} y - Canvas Y coordinate (integer)
@@ -199,9 +200,58 @@ class InputRouter {
       }
     }
 
-    // Add vertex (handles both: no open shape, open shape with < 3 verts,
-    // or open shape with >= 3 verts but click is outside anchor radius)
+    // Check if click is near an existing vertex from closed shapes — snap to it
+    var snapVertex = this._findNearbyVertex(x, y);
+    if (snapVertex !== null) {
+      this._store.addVertex(snapVertex.x, snapVertex.y);
+      return;
+    }
+
+    // Add vertex at click position
     this._store.addVertex(x, y);
+  }
+
+  /**
+   * Finds the nearest vertex from any closed shape within ANCHOR_RADIUS of (x, y).
+   * Also checks the open shape's vertices (so you can connect back to your own dots).
+   * Returns the vertex coordinates if found, or null.
+   *
+   * @param {number} x - Click X coordinate
+   * @param {number} y - Click Y coordinate
+   * @returns {{x: number, y: number}|null}
+   */
+  _findNearbyVertex(x, y) {
+    var closestDist = ANCHOR_RADIUS;
+    var closestVertex = null;
+
+    // Search closed shapes
+    var closedShapes = this._store.getClosedShapes();
+    for (var i = 0; i < closedShapes.length; i++) {
+      var verts = closedShapes[i].vertices;
+      for (var j = 0; j < verts.length; j++) {
+        var d = segmentLength({ x: x, y: y }, verts[j]);
+        if (d <= closestDist) {
+          closestDist = d;
+          closestVertex = verts[j];
+        }
+      }
+    }
+
+    // Also search the open shape's existing vertices (except the last one,
+    // which would trigger the min-distance rejection anyway)
+    var openShape = this._store.getOpenShape();
+    if (openShape !== null && openShape.vertices.length > 1) {
+      // Check all vertices except the last (to avoid snapping to where we just were)
+      for (var k = 0; k < openShape.vertices.length - 1; k++) {
+        var d2 = segmentLength({ x: x, y: y }, openShape.vertices[k]);
+        if (d2 <= closestDist) {
+          closestDist = d2;
+          closestVertex = openShape.vertices[k];
+        }
+      }
+    }
+
+    return closestVertex;
   }
 
   /**
