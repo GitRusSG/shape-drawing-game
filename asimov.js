@@ -200,6 +200,9 @@ class AsimovMode {
     // Draw ambient interference patterns (subtle background animation)
     this._drawAmbient();
 
+    // Draw cursor indicator — small glowing ring at mouse position
+    this._drawCursor();
+
     this._animFrame = requestAnimationFrame(this._loop);
   }
 
@@ -295,6 +298,30 @@ class AsimovMode {
     ctx.strokeStyle = 'hsla(' + hue + ', 70%, 50%, 0.05)';
     ctx.lineWidth = 1;
     ctx.stroke();
+  }
+
+  _drawCursor() {
+    var ctx = this._ctx;
+    var x = this._mouseX;
+    var y = this._mouseY;
+    if (x === 0 && y === 0) return;
+
+    // Small glowing crosshair/ring
+    var pulse = 0.5 + 0.5 * Math.sin(this._time * 6);
+    var alpha = 0.4 + pulse * 0.4;
+    var size = 5 + pulse * 2;
+
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, ' + alpha + ')';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 255, 255, ' + (alpha + 0.2) + ')';
+    ctx.fill();
   }
 }
 
