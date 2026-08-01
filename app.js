@@ -240,6 +240,9 @@ window.onerror = function (msg, url, line, col, error) {
       if (asimovMode.isActive()) {
         asimovMode.deactivate();
         btnAsimov.classList.remove('active');
+        btnAsimovFill.style.display = 'none';
+        asimovMode.setFillMode(false);
+        btnAsimovFill.classList.remove('active');
       } else {
         // Deactivate stamp mode if active
         if (stampMode.isActive()) {
@@ -249,6 +252,21 @@ window.onerror = function (msg, url, line, col, error) {
         }
         asimovMode.activate();
         btnAsimov.classList.add('active');
+        btnAsimovFill.style.display = '';
+      }
+    });
+  }
+
+  // Fill button toggles fill mode within Asimov
+  var btnAsimovFill = document.getElementById('btn-asimov-fill');
+  if (btnAsimovFill) {
+    btnAsimovFill.addEventListener('click', function () {
+      if (asimovMode.isFillMode()) {
+        asimovMode.setFillMode(false);
+        btnAsimovFill.classList.remove('active');
+      } else {
+        asimovMode.setFillMode(true);
+        btnAsimovFill.classList.add('active');
       }
     });
   }

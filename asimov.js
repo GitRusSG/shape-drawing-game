@@ -28,6 +28,7 @@ class AsimovMode {
     this._dwellTime = 0;     // how long mouse has been still while pressed
     this._lastMoveTime = 0;  // timestamp of last mouse movement
     this._permanentMarks = []; // spots that have been held long enough to be permanent
+    this._fillMode = false;  // when true, clicks flood-fill instead of drawing
 
     // Bind
     this._onMove = this._handleMove.bind(this);
@@ -82,6 +83,111 @@ class AsimovMode {
     this._ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
   }
 
+  setFillMode(on) {
+    this._fillMode = on;
+    if (on) {
+      this._canvas.style.cursor = 'crosshair';
+    } else {
+      this._canvas.style.cursor = 'none';
+    }
+  }
+
+  isFillMode() {
+    return this._fillMode;
+  }
+
+  /**
+   * Flood fill from (startX, startY) with the current hue colour.
+   * Fills any pixel that's "dark" (close to the background colour).
+   */
+  _floodFill(startX, startY) {
+    var ctx = this._ctx;
+    var w = this._canvas.width;
+    var h = this._canvas.height;
+    var imageData = ctx.getImageData(0, 0, w, h);
+    var data = imageData.data;
+
+    // Get the colour at the click point
+    var idx = (startY * w + startX) * 4;
+    var targetR = data[idx];
+    var targetG = data[idx + 1];
+    var targetB = data[idx + 2];
+
+    // Fill colour from current hue
+    var hue = this._hueBase;
+    // Convert HSL to RGB (s=90, l=55)
+    var fillRGB = this._hslToRgb(hue / 360, 0.9, 0.55);
+
+    // Don't fill if clicking on an already-coloured pixel (not dark)
+    var brightness = (targetR + targetG + targetB) / 3;
+    if (brightness > 80) return; // already has colour, skip
+
+    // BFS flood fill
+    var tolerance = 50;
+    var stack = [[startX, startY]];
+    var visited = new Uint8Array(w * h);
+
+    while (stack.length > 0) {
+      var point = stack.pop();
+      var px = point[0];
+      var py = point[1];
+
+      if (px < 0 || px >= w || py < 0 || py >= h) continue;
+
+      var pIdx = py * w + px;
+      if (visited[pIdx]) continue;
+      visited[pIdx] = 1;
+
+      var i = pIdx * 4;
+      var r = data[i];
+      var g = data[i + 1];
+      var b = data[i + 2];
+
+      // Check if this pixel is similar to the target (dark background)
+      var diff = Math.abs(r - targetR) + Math.abs(g - targetG) + Math.abs(b - targetB);
+      if (diff > tolerance) continue;
+
+      // Fill this pixel
+      data[i] = fillRGB[0];
+      data[i + 1] = fillRGB[1];
+      data[i + 2] = fillRGB[2];
+      data[i + 3] = 200; // slightly transparent
+
+      // Add neighbors
+      stack.push([px + 1, py]);
+      stack.push([px - 1, py]);
+      stack.push([px, py + 1]);
+      stack.push([px, py - 1]);
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    // Shift hue for next fill
+    this._hueBase = (this._hueBase + 45) % 360;
+  }
+
+  _hslToRgb(h, s, l) {
+    var r, g, b;
+    if (s === 0) {
+      r = g = b = l;
+    } else {
+      var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      var p = 2 * l - q;
+      r = this._hue2rgb(p, q, h + 1/3);
+      g = this._hue2rgb(p, q, h);
+      b = this._hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  }
+
+  _hue2rgb(p, q, t) {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  }
+
   _setupCanvas() {
     var rect = this._canvas.getBoundingClientRect();
     this._canvas.width = rect.width;
@@ -106,12 +212,19 @@ class AsimovMode {
 
   _handleDown(e) {
     if (!this._active) return;
-    this._isDrawing = true;
     var rect = this._canvas.getBoundingClientRect();
     this._mouseX = e.clientX - rect.left;
     this._mouseY = e.clientY - rect.top;
     this._prevX = this._mouseX;
     this._prevY = this._mouseY;
+
+    if (this._fillMode) {
+      this._floodFill(Math.round(this._mouseX), Math.round(this._mouseY));
+      return;
+    }
+
+    this._isDrawing = true;
+    this._lastMoveTime = Date.now();
     this._curves.push([]);
     this._hueBase = (this._hueBase + 60 + Math.random() * 40) % 360;
   }
