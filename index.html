@@ -42,6 +42,25 @@ body {
   touch-action: none;
 }
 
+#stamp-canvas {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: calc(100% - 32px);
+  height: calc(100% - 32px);
+  border-radius: 4px;
+  pointer-events: none;
+  display: none;
+}
+
+#stamp-canvas.active {
+  display: block;
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
 .panel {
   flex: 0 0 280px;
   padding: 16px;
@@ -86,6 +105,11 @@ body {
 
 .controls button:active {
   background: #0a2040;
+}
+
+.controls button.active {
+  background: #2a6040;
+  border-color: #4f8;
 }
 
 /* Measurements */
@@ -198,6 +222,7 @@ body {
 <div class="app">
   <div class="canvas-container">
     <canvas id="drawing-canvas" width="640" height="480" aria-label="Drawing canvas for placing shape vertices"></canvas>
+    <canvas id="stamp-canvas" width="640" height="480" aria-label="Stamp overlay canvas"></canvas>
   </div>
 
   <div class="panel" role="region" aria-label="Game controls and information">
@@ -206,6 +231,7 @@ body {
       <button id="btn-clear" type="button" aria-label="Clear all shapes">Clear</button>
       <button id="btn-cancel" type="button" aria-label="Cancel current shape">Cancel</button>
       <button id="btn-export" type="button" aria-label="Export canvas as PNG">Export</button>
+      <button id="btn-circle-mode" type="button" aria-label="Toggle circle stamp mode">Stamp</button>
     </div>
 
     <div class="messages" id="messages" role="status" aria-live="polite"></div>
@@ -249,6 +275,7 @@ body {
 <script src="keyboard.js"></script>
 <script src="uipanel.js"></script>
 <script src="aria.js"></script>
+<script src="stamp.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

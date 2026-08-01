@@ -146,11 +146,29 @@ window.onerror = function (msg, url, line, col, error) {
   if (btnClear) {
     btnClear.addEventListener('click', function () {
       store.clear();
+      stampMode.clear();
     });
   }
   if (btnCancel) {
     btnCancel.addEventListener('click', function () {
       store.cancel();
+    });
+  }
+
+  // 16. Stamp mode — press-and-hold circle with color shift
+  var stampCanvas = document.getElementById('stamp-canvas');
+  var stampMode = new StampMode(stampCanvas);
+  var btnCircleMode = document.getElementById('btn-circle-mode');
+
+  if (btnCircleMode) {
+    btnCircleMode.addEventListener('click', function () {
+      if (stampMode.isActive()) {
+        stampMode.deactivate();
+        btnCircleMode.classList.remove('active');
+      } else {
+        stampMode.activate();
+        btnCircleMode.classList.add('active');
+      }
     });
   }
 
