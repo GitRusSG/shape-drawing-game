@@ -177,6 +177,11 @@ window.onerror = function (msg, url, line, col, error) {
         btnCircleMode.classList.remove('active');
         stampSizeControl.style.display = 'none';
       } else {
+        // Deactivate asimov mode if active
+        if (asimovMode.isActive()) {
+          asimovMode.deactivate();
+          btnAsimov.classList.remove('active');
+        }
         stampMode.activate();
         btnCircleMode.classList.add('active');
         stampSizeControl.style.display = '';
@@ -198,5 +203,34 @@ window.onerror = function (msg, url, line, col, error) {
       }
     });
   }
+
+  // 17. Asimov mode — generative abstract art
+  var asimovCanvas = document.getElementById('asimov-canvas');
+  var asimovMode = new AsimovMode(asimovCanvas);
+  var btnAsimov = document.getElementById('btn-asimov');
+
+  if (btnAsimov) {
+    btnAsimov.addEventListener('click', function () {
+      if (asimovMode.isActive()) {
+        asimovMode.deactivate();
+        btnAsimov.classList.remove('active');
+      } else {
+        // Deactivate stamp mode if active
+        if (stampMode.isActive()) {
+          stampMode.deactivate();
+          btnCircleMode.classList.remove('active');
+          stampSizeControl.style.display = 'none';
+        }
+        asimovMode.activate();
+        btnAsimov.classList.add('active');
+      }
+    });
+  }
+
+  // Also update clear to clear asimov
+  var origClearHandler = btnClear.onclick;
+  btnClear.addEventListener('click', function () {
+    asimovMode.clear();
+  });
 
 })();
