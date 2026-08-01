@@ -23,7 +23,8 @@ class StampMode {
     this._pressX = 0;
     this._pressY = 0;
     this._animFrame = null;
-    this._stamps = []; // stored stamps for redraw: {x, y, hue}
+    this._stamps = []; // stored stamps for redraw: {x, y, hue, radius}
+    this._radius = STAMP_RADIUS;
 
     // Bind handlers
     this._onMouseDown = this._handleMouseDown.bind(this);
@@ -67,6 +68,14 @@ class StampMode {
   }
 
   /**
+   * Set the stamp radius.
+   * @param {number} r - Radius in pixels
+   */
+  setRadius(r) {
+    this._radius = r;
+  }
+
+  /**
    * Check if stamp mode is active.
    */
   isActive() {
@@ -79,6 +88,16 @@ class StampMode {
   clear() {
     this._stamps = [];
     this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+  }
+
+  /**
+   * Undo the last stamp.
+   */
+  undo() {
+    if (this._stamps.length > 0) {
+      this._stamps.pop();
+      this._redrawAll();
+    }
   }
 
   /**
@@ -159,7 +178,7 @@ class StampMode {
     // Commit the final stamp
     var elapsed = (Date.now() - this._pressStart) / 1000;
     var hue = Math.round((elapsed * STAMP_HUE_SPEED) % 360);
-    this._stamps.push({ x: this._pressX, y: this._pressY, hue: hue });
+    this._stamps.push({ x: this._pressX, y: this._pressY, hue: hue, radius: this._radius });
     this._redrawAll();
   }
 
@@ -191,7 +210,7 @@ class StampMode {
 
     for (var i = 0; i < this._stamps.length; i++) {
       var s = this._stamps[i];
-      this._drawStamp(s.x, s.y, s.hue, 0.7);
+      this._drawStamp(s.x, s.y, s.hue, 0.7, s.radius);
     }
 
     // Reset composite for the live preview
@@ -204,16 +223,18 @@ class StampMode {
    * @param {number} y - Center Y
    * @param {number} hue - Hue value (0-360)
    * @param {number} alpha - Opacity (0-1)
+   * @param {number} [radius] - Radius (defaults to current _radius)
    */
-  _drawStamp(x, y, hue, alpha) {
+  _drawStamp(x, y, hue, alpha, radius) {
+    var r = radius || this._radius;
     var ctx = this._ctx;
-    var grad = ctx.createRadialGradient(x, y, 0, x, y, STAMP_RADIUS);
+    var grad = ctx.createRadialGradient(x, y, 0, x, y, r);
     grad.addColorStop(0, 'hsla(' + hue + ', 100%, 60%, ' + alpha + ')');
     grad.addColorStop(0.5, 'hsla(' + hue + ', 90%, 50%, ' + (alpha * 0.7) + ')');
     grad.addColorStop(1, 'hsla(' + hue + ', 80%, 40%, 0)');
 
     ctx.beginPath();
-    ctx.arc(x, y, STAMP_RADIUS, 0, 2 * Math.PI);
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
     ctx.fillStyle = grad;
     ctx.fill();
   }

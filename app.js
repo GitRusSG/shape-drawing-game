@@ -140,7 +140,11 @@ window.onerror = function (msg, url, line, col, error) {
 
   if (btnUndo) {
     btnUndo.addEventListener('click', function () {
-      store.undo();
+      if (stampMode.isActive()) {
+        stampMode.undo();
+      } else {
+        store.undo();
+      }
     });
   }
   if (btnClear) {
@@ -165,9 +169,26 @@ window.onerror = function (msg, url, line, col, error) {
       if (stampMode.isActive()) {
         stampMode.deactivate();
         btnCircleMode.classList.remove('active');
+        stampSizeControl.style.display = 'none';
       } else {
         stampMode.activate();
         btnCircleMode.classList.add('active');
+        stampSizeControl.style.display = '';
+      }
+    });
+  }
+
+  // Size slider for stamps
+  var stampSizeControl = document.getElementById('stamp-size-control');
+  var stampSizeSlider = document.getElementById('stamp-size-slider');
+  var stampSizeValue = document.getElementById('stamp-size-value');
+
+  if (stampSizeSlider) {
+    stampSizeSlider.addEventListener('input', function () {
+      var val = parseInt(stampSizeSlider.value, 10);
+      stampMode.setRadius(val);
+      if (stampSizeValue) {
+        stampSizeValue.textContent = val + 'px';
       }
     });
   }

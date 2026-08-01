@@ -234,6 +234,12 @@ body {
       <button id="btn-circle-mode" type="button" aria-label="Toggle circle stamp mode">Stamp</button>
     </div>
 
+    <div class="stamp-size" id="stamp-size-control" style="display:none;">
+      <label for="stamp-size-slider" style="font-size:0.8em;color:#aaa;">Size</label>
+      <input id="stamp-size-slider" type="range" min="10" max="150" value="50" style="width:100%;accent-color:#4f8;">
+      <span id="stamp-size-value" style="font-size:0.8em;color:#eee;">50px</span>
+    </div>
+
     <div class="messages" id="messages" role="status" aria-live="polite"></div>
 
     <div class="measurements" id="measurements">
