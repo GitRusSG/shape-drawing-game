@@ -133,4 +133,25 @@ window.onerror = function (msg, url, line, col, error) {
     });
   }
 
+  // 15. Wire click handlers for control buttons (undo, clear, cancel)
+  var btnUndo = document.getElementById('btn-undo');
+  var btnClear = document.getElementById('btn-clear');
+  var btnCancel = document.getElementById('btn-cancel');
+
+  if (btnUndo) {
+    btnUndo.addEventListener('click', function () {
+      store.undo();
+    });
+  }
+  if (btnClear) {
+    btnClear.addEventListener('click', function () {
+      store.clear();
+    });
+  }
+  if (btnCancel) {
+    btnCancel.addEventListener('click', function () {
+      store.cancel();
+    });
+  }
+
 })();
