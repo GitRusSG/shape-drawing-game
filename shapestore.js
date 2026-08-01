@@ -9,8 +9,10 @@
  */
 
 // In Node.js, Shape must be required; in browser, it's a global from shape.js script tag.
+// Note: We cannot use `var Shape = ...` here because `class Shape` in shape.js creates
+// a lexical binding that cannot be redeclared with var (throws SyntaxError in browsers).
 if (typeof Shape === 'undefined' && typeof require !== 'undefined') {
-  var Shape = require('./shape').Shape;
+  Shape = require('./shape').Shape;
 }
 
 var VERTEX_LIMIT = 100;

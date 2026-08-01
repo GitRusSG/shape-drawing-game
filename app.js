@@ -19,6 +19,14 @@
  * Requirements: 1.1, 7.5, 7.6, 7.7, 7.10, 8.2, 8.3
  */
 
+// Global error handler — surfaces JS errors in the UI for debugging
+window.onerror = function (msg, url, line, col, error) {
+  var messagesEl = document.getElementById('messages');
+  if (messagesEl) {
+    messagesEl.textContent = 'JS Error: ' + msg;
+  }
+};
+
 (function () {
   'use strict';
 
