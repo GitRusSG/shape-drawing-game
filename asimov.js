@@ -45,11 +45,15 @@ class AsimovMode {
   activate() {
     this._active = true;
     this._canvas.classList.add('active');
+    // Force layout so getBoundingClientRect returns real dimensions
+    this._canvas.offsetHeight;
     this._setupCanvas();
     // Fill with dark background
     this._ctx.fillStyle = '#0a0a1a';
     this._ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
     this._time = 0;
+    this._particles = [];
+    this._curves = [];
     this._animFrame = requestAnimationFrame(this._loop);
   }
 
