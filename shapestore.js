@@ -79,6 +79,41 @@ class ShapeStore {
   }
 
   /**
+   * Adds a vertex at (x, y), forcing the addition even if it's close to the last vertex.
+   * Used when snapping to existing vertices from closed shapes.
+   * Still enforces vertex limit. Skips min-distance check.
+   * If the vertex is identical to the last vertex, it's a no-op (prevents true duplicates).
+   *
+   * @param {number} x - X coordinate
+   * @param {number} y - Y coordinate
+   * @returns {boolean} true if vertex was added
+   */
+  addVertexForce(x, y) {
+    var ix = Math.round(x);
+    var iy = Math.round(y);
+
+    if (this.openShape === null) {
+      this.openShape = new Shape([{ x: ix, y: iy }], false);
+      this._eventBus.emit('change');
+      return true;
+    }
+
+    if (this.openShape.getVertexCount() >= VERTEX_LIMIT) {
+      return false;
+    }
+
+    // Skip if truly identical to the last vertex (prevents double-tap duplicates)
+    var lastVertex = this.openShape.vertices[this.openShape.vertices.length - 1];
+    if (ix === lastVertex.x && iy === lastVertex.y) {
+      return false;
+    }
+
+    this.openShape.vertices.push({ x: ix, y: iy });
+    this._eventBus.emit('change');
+    return true;
+  }
+
+  /**
    * Closes the current open shape if it has >= 3 vertices.
    * Marks shape as closed, moves it to closedShapes, and clears open shape.
    * Emits 'change' on success.

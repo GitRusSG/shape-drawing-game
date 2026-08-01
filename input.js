@@ -203,7 +203,8 @@ class InputRouter {
     // Check if click is near an existing vertex from closed shapes — snap to it
     var snapVertex = this._findNearbyVertex(x, y);
     if (snapVertex !== null) {
-      this._store.addVertex(snapVertex.x, snapVertex.y);
+      // Force-add the snapped vertex, bypassing min-distance check if needed
+      this._store.addVertexForce(snapVertex.x, snapVertex.y);
       return;
     }
 
