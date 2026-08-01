@@ -1,0 +1,12 @@
+{
+  "name": "shape-drawing-game",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shape Drawing Game - tests and dependencies",
+  "scripts": {
+    "test": "node tests/setup.js"
+  },
+  "dependencies": {
+    "fast-check": "3.22.0"
+  }
+}

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shape Drawing Game</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #1a1a2e;
+  color: #eee;
+  min-height: 100vh;
+}
+
+.app {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.canvas-container {
+  flex: 1 1 320px;
+  min-width: 320px;
+  min-height: 320px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+#drawing-canvas {
+  width: 100%;
+  height: 100%;
+  min-width: 320px;
+  min-height: 320px;
+  background: #0f0f23;
+  border: 2px solid #333;
+  border-radius: 4px;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.panel {
+  flex: 0 0 280px;
+  padding: 16px;
+  background: #16213e;
+  border-left: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.controls button {
+  padding: 8px 16px;
+  background: #0f3460;
+  color: #eee;
+  border: 2px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.controls button:hover {
+  background: #1a4a80;
+  border-color: #88f;
+}
+
+.controls button:focus {
+  outline: none;
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+.controls button:active {
+  background: #0a2040;
+}
+
+/* Measurements */
+.measurements {
+  background: #0f0f23;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.measurements h2 {
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.measurements dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 0.9em;
+}
+
+.measurements dt {
+  color: #aaa;
+}
+
+.measurements dd {
+  color: #eee;
+  font-weight: 600;
+}
+
+/* Color Legend */
+.color-legend {
+  background: #0f0f23;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.color-legend h2 {
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.color-legend .swatches {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.color-legend .swatch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85em;
+}
+
+.color-legend .swatch-color {
+  width: 24px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid #555;
+}
+
+/* Messages */
+.messages {
+  min-height: 24px;
+  font-size: 0.85em;
+  color: #f0c040;
+}
+
+/* ARIA live region - visually hidden but accessible */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive: panel below canvas on narrow screens */
+@media (max-width: 640px) {
+  .app {
+    flex-direction: column;
+  }
+  .panel {
+    flex: none;
+    border-left: none;
+    border-top: 1px solid #333;
+    max-height: none;
+  }
+  .canvas-container {
+    min-height: 320px;
+    height: 50vh;
+  }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="canvas-container">
+    <canvas id="drawing-canvas" width="640" height="480" aria-label="Drawing canvas for placing shape vertices"></canvas>
+  </div>
+
+  <div class="panel" role="region" aria-label="Game controls and information">
+    <div class="controls" role="toolbar" aria-label="Drawing controls">
+      <button id="btn-undo" type="button" aria-label="Undo last action">Undo</button>
+      <button id="btn-clear" type="button" aria-label="Clear all shapes">Clear</button>
+      <button id="btn-cancel" type="button" aria-label="Cancel current shape">Cancel</button>
+    </div>
+
+    <div class="messages" id="messages" role="status" aria-live="polite"></div>
+
+    <div class="measurements" id="measurements">
+      <h2>Measurements</h2>
+      <dl>
+        <dt>Vertices</dt>
+        <dd id="measure-vertices">0</dd>
+        <dt>Last segment</dt>
+        <dd id="measure-segment">0 px</dd>
+        <dt>Perimeter</dt>
+        <dd id="measure-perimeter">0 px</dd>
+        <dt>Closed shapes</dt>
+        <dd id="measure-closed">0</dd>
+      </dl>
+    </div>
+
+    <div class="color-legend" id="color-legend">
+      <h2>Color Legend</h2>
+      <div class="swatches" id="legend-swatches">
+        <!-- Populated by uipanel.js -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ARIA live region for screen readers -->
+<div id="aria-live" class="sr-only" aria-live="polite" aria-atomic="true">
+  0 vertices in current shape. 0 closed shapes.
+</div>
+
+<!-- JS modules (no build step, loaded in dependency order) -->
+<script src="colorscale.js"></script>
+<script src="shape.js"></script>
+<script src="eventbus.js"></script>
+<script src="shapestore.js"></script>
+<script src="persistence.js"></script>
+<script src="renderer.js"></script>
+<script src="input.js"></script>
+<script src="keyboard.js"></script>
+<script src="uipanel.js"></script>
+<script src="aria.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
